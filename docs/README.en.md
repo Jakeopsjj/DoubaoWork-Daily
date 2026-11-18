@@ -22,7 +22,7 @@
 - Chooses the v3 campaign detail endpoint or the regular campaign list endpoint.
 - Continues only when exactly one `daily_checkin` task is present.
 - Treats already claimed, campaign not deployed, and conditions not met as neutral states.
-- Sends a best-effort `landing/report` operation event immediately before an actual check-in claim.
+- Sends no synthetic `landing/report` event; only the documented `landing/checkin` claim can write check-in state.
 - `710010702` means the official page SDK context is required; click the official check-in button, then rerun for a read-only confirmation.
 - Re-reads the campaign detail after claiming and accepts only `checked_in_today=true`; `task_status=3` never overrides an explicit false.
 - Supports multiple accounts, query-only mode, single-account selection, and PushPlus, Bark, and WeCom notifications.
@@ -78,7 +78,9 @@ This matches the 09:15 Beijing-time rhythm of the workflow example `15 1 * * *`.
 
 ## ☁️ GitHub Actions
 
-The workflow is [../.github/workflows/daily.yml](../.github/workflows/daily.yml). Manual execution is enabled; the schedule block is commented out.
+The workflow is [../.github/workflows/daily.yml](../.github/workflows/daily.yml). Manual execution is enabled; the schedule block is commented out. Every run defaults to read-only `query`; only an explicit `workflow_dispatch` with `mode=claim` submits a claim. A schedule, when enabled, remains query-only.
+
+> Important: some accounts see `campaign not found` from GitHub-hosted runner egress while the same cookie works locally or through a trusted Tailscale exit node. In that case Actions is a read-only diagnostic only. Use a trusted local/proxy egress for claims; do not fake device fields or resubmit claims.
 
 | Secret | Required | Purpose |
 | :--- | :---: | :--- |
@@ -88,6 +90,7 @@ The workflow is [../.github/workflows/daily.yml](../.github/workflows/daily.yml)
 | `DOUBAOWORK_WEB_ID` | Optional | Web ID |
 | `DOUBAOWORK_FINGERPRINT` | Optional | Fingerprint fallback |
 | `DOUBAOWORK_PROXY` | Optional | HTTP(S) / SOCKS5 proxy |
+| `DOUBAOWORK_CAMPAIGN_GROUP` | Optional | Query-only fallback group when launch omits `campaign_group_code`; claim still requires launch context |
 | `PUSHPLUS_TOKEN`, `BARK_URL`, `WECOM_WEBHOOK` | Optional | Notifications |
 
 To enable the schedule, uncomment its two lines. `15 1 * * *` is UTC and corresponds to 09:15 Beijing time.
@@ -105,6 +108,7 @@ To enable the schedule, uncomment its two lines. `15 1 * * *` is UTC and corresp
 | `DOUBAOWORK_USER_AGENT` | Optional | Custom User-Agent |
 | `DOUBAOWORK_CLIENT_VERSION` | Optional | Client version; default `2.33.5` |
 | `DOUBAOWORK_PROXY` | Optional | HTTP(S) / SOCKS5 proxy |
+| `DOUBAOWORK_CAMPAIGN_GROUP` | Optional | Read-only detail probe for query when launch has no campaign group; never bypasses claim gating |
 | `DOUBAOWORK_NO_NOTIFY` | Optional | Set to `1` to disable notifications |
 | `DOUBAOWORK_BASE_URL` | Advanced | Defaults to `https://www.doubao.com` |
 

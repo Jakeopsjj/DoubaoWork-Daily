@@ -22,7 +22,7 @@
 - v3 detail 또는 일반 campaign list 엔드포인트를 선택합니다.
 - 상세 정보에 `daily_checkin` 작업이 정확히 하나 있을 때만 진행합니다.
 - 이미 수령, 캠페인 미배포, 조건 미충족은 중립 상태로 처리합니다.
-- 실제 checkin 직전에 best-effort `landing/report` 작업 이벤트를 전송합니다.
+- 합성 `landing/report` 이벤트를 보내지 않습니다. checkin 상태를 쓰는 요청은 문서화된 `landing/checkin`뿐입니다.
 - `710010702`는 공식 페이지 SDK 컨텍스트가 필요하다는 뜻입니다. 공식 클라이언트에서 체크인한 뒤 다시 실행하세요.
 - 수령 후 상세를 다시 조회하며 `checked_in_today=true`만 완료 조건으로 사용합니다. `task_status=3`은 명시적인 false를 덮어쓰지 않습니다.
 - 다중 계정, `--query`, `--only`, PushPlus, Bark, WeCom 알림을 지원합니다.
@@ -76,7 +76,7 @@ pip3 install requests
 
 ## ☁️ GitHub Actions
 
-워크플로는 [../.github/workflows/daily.yml](../.github/workflows/daily.yml)입니다. 수동 실행이 활성화되어 있고 일정 부분은 주석 처리되어 있습니다.
+워크플로는 [../.github/workflows/daily.yml](../.github/workflows/daily.yml)입니다. 수동 실행이 활성화되어 있고 일정 부분은 주석 처리되어 있습니다. 기본 실행은 읽기 전용 `query`이며, `workflow_dispatch`에서 `mode=claim`을 명시적으로 선택한 경우에만 checkin을 제출합니다. 일정을 켜도 `query`만 실행됩니다.
 
 | Secret | 필수 | 용도 |
 | :--- | :---: | :--- |
@@ -86,9 +86,12 @@ pip3 install requests
 | `DOUBAOWORK_WEB_ID` | 선택 | Web ID |
 | `DOUBAOWORK_FINGERPRINT` | 선택 | Fingerprint |
 | `DOUBAOWORK_PROXY` | 선택 | 프록시 |
+| `DOUBAOWORK_CAMPAIGN_GROUP` | 선택 | launch가 `campaign_group_code`를 생략할 때 query 전용 상세 조회 그룹. claim은 launch 조건을 계속 요구 |
 | `PUSHPLUS_TOKEN` / `BARK_URL` / `WECOM_WEBHOOK` | 선택 | 알림 |
 
 정기 실행을 사용하려면 주석을 해제하세요. `15 1 * * *`는 UTC 기준이며 베이징 시간 09:15입니다.
+
+> 중요: GitHub 호스팅 runner의 출구 IP에서는 `campaign not found`가 나오지만 같은 Cookie가 로컬 또는 신뢰할 수 있는 Tailscale exit node에서 정상일 수 있습니다. 이 경우 Actions는 읽기 전용 진단으로만 사용하고 실제 수령은 신뢰할 수 있는 로컬/프록시 출구에서 실행하세요.
 
 ## 🔧 주요 환경 변수
 
@@ -103,6 +106,7 @@ pip3 install requests
 | `DOUBAOWORK_USER_AGENT` | 선택 User-Agent |
 | `DOUBAOWORK_CLIENT_VERSION` | 선택 클라이언트 버전, 기본 `2.33.5` |
 | `DOUBAOWORK_PROXY` | HTTP(S) / SOCKS5 프록시 |
+| `DOUBAOWORK_CAMPAIGN_GROUP` | query의 읽기 전용 상세 조회용. claim의 launch 게이트를 우회하지 않음 |
 | `DOUBAOWORK_NO_NOTIFY` | `1`이면 알림 비활성화 |
 
 ## 📊 성공 기준

@@ -22,7 +22,7 @@
 - Escolhe o endpoint v3 de detalhes ou a lista regular de campanhas.
 - Continua apenas quando existe exatamente uma tarefa `daily_checkin`.
 - Trata recompensa já recebida, campanha não publicada e condição não atendida como estados neutros.
-- Envia um evento best-effort `landing/report` imediatamente antes do check-in real.
+- Não envia um evento sintético `landing/report`; somente o `landing/checkin` documentado grava o estado do check-in.
 - `710010702` indica que o contexto do SDK da página oficial é necessário; faça o check-in no cliente oficial e execute novamente.
 - Relê os detalhes após o resgate e aceita somente `checked_in_today=true`; `task_status=3` nunca substitui um false explícito.
 - Suporta várias contas, modo somente consulta, seleção de uma conta e notificações PushPlus, Bark e WeCom.
@@ -76,7 +76,7 @@ Execute `--query` manualmente antes de ativar o agendamento.
 
 ## ☁️ GitHub Actions
 
-O workflow está em [../.github/workflows/daily.yml](../.github/workflows/daily.yml). A execução manual está ativa e o bloco de agendamento está comentado.
+O workflow está em [../.github/workflows/daily.yml](../.github/workflows/daily.yml). A execução manual está ativa e o bloco de agendamento está comentado. A execução padrão é `query`, somente leitura; apenas um `workflow_dispatch` com `mode=claim` explícito envia o check-in. Quando o agendamento for ativado, ele continua sendo somente `query`.
 
 | Secret | Obrigatório | Uso |
 | :--- | :---: | :--- |
@@ -86,9 +86,12 @@ O workflow está em [../.github/workflows/daily.yml](../.github/workflows/daily.
 | `DOUBAOWORK_WEB_ID` | Opcional | Web ID |
 | `DOUBAOWORK_FINGERPRINT` | Opcional | Fingerprint |
 | `DOUBAOWORK_PROXY` | Opcional | Proxy |
+| `DOUBAOWORK_CAMPAIGN_GROUP` | Opcional | Grupo de fallback somente para query quando o launch omite `campaign_group_code`; o claim continua exigindo o contexto do launch |
 | `PUSHPLUS_TOKEN` / `BARK_URL` / `WECOM_WEBHOOK` | Opcional | Notificações |
 
 Para ativar o agendamento, remova os comentários. `15 1 * * *` usa UTC e corresponde a 09:15 em Pequim.
+
+> Importante: algumas contas recebem `campaign not found` no egress do runner hospedado pelo GitHub, enquanto o mesmo cookie funciona localmente ou por um Tailscale exit node confiável. Nesse caso, use Actions apenas para diagnóstico somente leitura e faça o resgate real por uma saída local/proxy confiável.
 
 ## 🔧 Variáveis principais
 
@@ -103,6 +106,7 @@ Para ativar o agendamento, remova os comentários. `15 1 * * *` usa UTC e corres
 | `DOUBAOWORK_USER_AGENT` | User-Agent opcional |
 | `DOUBAOWORK_CLIENT_VERSION` | Versão do cliente; padrão `2.33.5` |
 | `DOUBAOWORK_PROXY` | Proxy HTTP(S) / SOCKS5 |
+| `DOUBAOWORK_CAMPAIGN_GROUP` | Consulta de detalhe somente leitura no query; nunca ignora o gate do claim |
 | `DOUBAOWORK_NO_NOTIFY` | `1` desativa notificações |
 
 ## 📊 Critério de sucesso

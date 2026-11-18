@@ -22,7 +22,7 @@
 - 依活動組選擇 v3 detail 或一般 campaign list 介面。
 - 只有詳情中存在唯一 `daily_checkin` 任務時才繼續。
 - 已領取、活動未投放、尚未滿足條件都按中性狀態處理。
-- 真正提交 checkin 前先發送 best-effort `landing/report` 操作事件。
+- 不發送合成的 `landing/report` 事件；只有文件化的 `landing/checkin` 會寫入簽到狀態。
 - `710010702` 表示需要官方頁面 SDK 上下文；請在官方客戶端點擊簽到，再重跑腳本只做狀態確認。
 - 領取後重新讀取詳情，只接受 `checked_in_today=true`；`task_status=3` 不會覆蓋明確的 false。
 - 支援多帳號、`--query`、`--only` 與 PushPlus、Bark、企業微信通知。
@@ -76,7 +76,7 @@ pip3 install requests
 
 ## ☁️ GitHub Actions
 
-工作流為 [../.github/workflows/daily.yml](../.github/workflows/daily.yml)。目前啟用手動觸發，排程區塊是註解狀態。
+工作流為 [../.github/workflows/daily.yml](../.github/workflows/daily.yml)。目前啟用手動觸發，排程區塊是註解狀態。預設執行唯讀 `query`；只有 `workflow_dispatch` 明確選擇 `mode=claim` 才提交簽到。未來啟用排程時也只會執行 `query`。
 
 | Secret | 必填 | 用途 |
 | :--- | :---: | :--- |
@@ -86,9 +86,12 @@ pip3 install requests
 | `DOUBAOWORK_WEB_ID` | 否 | Web ID |
 | `DOUBAOWORK_FINGERPRINT` | 否 | 指紋 |
 | `DOUBAOWORK_PROXY` | 否 | 代理 |
+| `DOUBAOWORK_CAMPAIGN_GROUP` | 否 | launch 缺少 `campaign_group_code` 時，query 專用的活動組詳情探測；claim 仍要求 launch 條件 |
 | `PUSHPLUS_TOKEN` / `BARK_URL` / `WECOM_WEBHOOK` | 否 | 通知 |
 
 若要啟用排程，取消兩行註解。`15 1 * * *` 使用 UTC，對應北京時間 09:15。
+
+> 重要：部分帳號在 GitHub 託管 runner 的出口 IP 會得到 `campaign not found`，但同一 Cookie 在本機或可信 Tailscale exit node 可正常運作。此時 Actions 只作唯讀診斷，實際領取請使用可信本機/代理出口。
 
 ## 🔧 關鍵環境變數
 
@@ -103,6 +106,7 @@ pip3 install requests
 | `DOUBAOWORK_USER_AGENT` | 可選 User-Agent |
 | `DOUBAOWORK_CLIENT_VERSION` | 可選版本，預設 `2.33.5` |
 | `DOUBAOWORK_PROXY` | HTTP(S) / SOCKS5 代理 |
+| `DOUBAOWORK_CAMPAIGN_GROUP` | query 的唯讀詳情探測用；不會繞過 claim 的 launch 前置 |
 | `DOUBAOWORK_NO_NOTIFY` | `1` 關閉通知 |
 
 ## 📊 成功判據

@@ -1,5 +1,28 @@
 # 更新日志
 
+## v1.3.4（2026-11-14）
+
+- 确认 GitHub 托管 runner 的机房出口可能触发平台活动不可见：同一 Cookie 在本地、JP VPN 和 Tailscale 可信出口可见，而 hosted runner 返回 `campaign not found`。
+- query 的详情探测失败诊断加入 HTTP 状态、业务码和“可能是当前出口 IP 未获得活动下发”的明确提示。
+- README 增加 Actions 出口运行边界、Tailscale exit node 可选示例和 `DOUBAOWORK_PROXY` 说明；Actions 继续只承担只读诊断，实际领取使用可信出口。
+- 本版不改变 claim 协议、不伪造设备字段，也不把网络可见性问题归因成账号封禁。
+
+## v1.3.3（2026-11-14）
+
+- `--query` 增加显式活动组详情探测：当 `/alice/user/launch` 返回 `code=0` 但缺少 `campaign_group_code`、同时配置了 `DOUBAOWORK_CAMPAIGN_GROUP` 时，继续只读请求活动详情确认 `checked_in_today`。
+- GitHub Actions 的 query/claim 步骤默认传入 `DOUBAOWORK_CAMPAIGN_GROUP=pc_incentive_task_mvp_v3`；仓库变量可覆盖。
+- claim 的写保护不变：launch 缺组时不会因为显式组而提交 `/landing/checkin`，必须先由 query 证据确认活动可见。
+- 诊断新增 `launch_shape`、`launch_group_missing`、`detail_probe` 以及 `has_device_id` / `has_web_id` / `has_fp` 布尔值，不输出凭据或设备原值。
+- 新增 launch 缺组 + 显式详情成功、无显式组保持 inactive、claim 不探测/不写请求的回归；全套 `45` 项测试通过。
+
+## v1.3.2（2026-11-13）
+
+- GitHub Actions 默认执行只读 `--query`；只有 `workflow_dispatch` 显式选择 `mode=claim` 才运行领取，schedule 即使启用也固定只读。
+- 移除 `landing/report` 合成 `user_operate` 写请求。该事件没有参与成功判定，也不在当前 Agent2Providers doubaowork 签到实现中；它会增加云端风控面，不能替代官方页面 SDK 上下文。
+- 每个账号新增单行脱敏诊断，记录请求路径、HTTP 状态、业务 `code`、消息、`checked_in_today`、pending 状态、session Cookie 形态和设备上下文类型，不输出 Cookie、Token、手机号或设备值。
+- 明确 `sessionid==sessionid_ss` 不是脚本分支条件：两者至少有一个非空即可，同时存在时原样发送，台账身份优先使用 `sessionid`。
+- 新增 Actions 默认只读、显式 claim、无额外 report 写请求、相等 session Cookie、诊断脱敏和 pending 状态回归；全套 `41` 项测试通过。
+
 ## v1.3.1（2026-11-10）
 
 - `710010702` 重新归类为“需要官方活动页 SDK”：当前 landing/checkin 需要页面运行时生成的 `biz_params` 与 `AgwCommonParam`，纯 HTTP 不自行伪造。
